@@ -55,9 +55,18 @@ def cars_page() -> rx.Component:
 
 app = rx.App(
     theme=rx.theme(
-        appearance="light", has_background=True, radius="large", accent_color="blue"
+        appearance="inherit",
+        has_background=True,
+        radius="large",
+        accent_color="blue",
     ),
+    stylesheets=[
+        "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap",
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css",
+        "/custom.css",  # Our custom CSS to override Radix fonts
+    ],
 )
+
 app.add_page(
     sales_page,
     route="/",

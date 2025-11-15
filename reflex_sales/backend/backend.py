@@ -69,6 +69,8 @@ class State(rx.State):
     search_car_value: str = ""
     sort_car_value: str = ""
     sort_car_reverse: bool = False
+    add_car_dialog_open: bool = False
+    edit_car_dialog_open: bool = False
     products: dict[str, str] = {}
     email_content_data: str = (
         "Click 'Generate Email' to generate a personalized sales email."
@@ -99,6 +101,18 @@ class State(rx.State):
     @rx.event
     def set_length(self, value: list[int | float]):
         self.length = int(value[0])
+
+    @rx.event
+    def set_edit_car_dialog_open(self, value: bool):
+        self.edit_car_dialog_open = value
+        if not value:
+            self.car_errors = {}  # Clear errors when closing
+
+    @rx.event
+    def set_add_car_dialog_open(self, value: bool):
+        self.add_car_dialog_open = value
+        if not value:
+            self.car_errors = {}  # Clear errors when closing
 
     @rx.event
     def update_car_field(self, field: str, value: str):
@@ -379,6 +393,8 @@ class State(rx.State):
 
     def get_car(self, car: Car):
         self.current_car = car
+        self.edit_car_dialog_open = True
+        self.car_errors = {}  # Clear errors when opening
 
     def add_car_to_db(self, form_data: dict):
         # Clear previous errors
@@ -398,6 +414,7 @@ class State(rx.State):
                 session.refresh(self.current_car)
 
             self.load_cars_entries()
+            self.add_car_dialog_open = False
             return rx.toast.success(
                 f"Car {self.current_car.make} {self.current_car.model} has been added.",
                 position="bottom-right",
@@ -420,36 +437,16 @@ class State(rx.State):
             )
 
     def update_car_to_db(self, form_data: dict):
+        # Clear previous errors
+        self.car_errors = {}
+
         try:
-            # Validate form data
-            if not form_data.get("make", "").strip():
-                return rx.toast.error(
-                    "Make is required",
-                    position="bottom-right",
-                )
-            if not form_data.get("model", "").strip():
-                return rx.toast.error(
-                    "Model is required",
-                    position="bottom-right",
-                )
-            if not form_data.get("version", "").strip():
-                return rx.toast.error(
-                    "Version is required",
-                    position="bottom-right",
-                )
+            # Convert string inputs to proper types
+            form_data["year"] = int(form_data.get("year", 0))
+            form_data["price"] = int(form_data.get("price", 0))
 
-            # Convert and validate year and price as integers
-            try:
-                year = int(form_data.get("year", 0))
-                price = int(form_data.get("price", 0))
-            except (ValueError, TypeError):
-                return rx.toast.error(
-                    "Year and Price must be valid numbers",
-                    position="bottom-right",
-                )
-
-            form_data["year"] = year
-            form_data["price"] = price
+            # Pydantic validation via Car model
+            validated_car = Car(**form_data)
 
             with rx.session() as session:
                 car = session.exec(
@@ -461,19 +458,32 @@ class State(rx.State):
                         position="bottom-right",
                     )
 
-                for key, value in form_data.items():
-                    setattr(car, key, value)
+                # Update car attributes with validated data
+                car.make = validated_car.make
+                car.model = validated_car.model
+                car.version = validated_car.version
+                car.year = validated_car.year
+                car.price = validated_car.price
+
                 session.commit()
                 session.refresh(car)
                 self.current_car = car
+
             self.load_cars_entries()
+            self.edit_car_dialog_open = False
             return rx.toast.success(
                 f"Car {self.current_car.make} {self.current_car.model} has been modified.",
                 position="bottom-right",
             )
-        except ValueError as e:
+        except ValidationError as e:
+            # Map Pydantic errors to state
+            self.car_errors = self._map_pydantic_errors(e)
+            # Show first error as toast
+            first_error = next(iter(self.car_errors.values()), "Validation failed")
+            return rx.toast.error(first_error, position="bottom-right")
+        except (ValueError, TypeError) as e:
             return rx.toast.error(
-                str(e),
+                f"Invalid input: {str(e)}",
                 position="bottom-right",
             )
         except Exception as e:

@@ -162,6 +162,8 @@ def _add_car_button() -> rx.Component:
             border=f"2.5px solid {rx.color('accent', 7)}",
             border_radius="25px",
         ),
+        open=State.add_car_dialog_open,
+        on_open_change=State.set_add_car_dialog_open,
     )
 
 
@@ -215,6 +217,7 @@ def _update_car_dialog(car):
                                 "make",
                                 "factory",
                                 car.make,
+                                server_error=State.car_errors.get("make", ""),
                             ),
                             # Model
                             form_field(
@@ -224,6 +227,7 @@ def _update_car_dialog(car):
                                 "model",
                                 "car",
                                 car.model,
+                                server_error=State.car_errors.get("model", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -237,6 +241,7 @@ def _update_car_dialog(car):
                                 "version",
                                 "settings",
                                 car.version,
+                                server_error=State.car_errors.get("version", ""),
                             ),
                             # Year
                             form_field(
@@ -246,6 +251,7 @@ def _update_car_dialog(car):
                                 "year",
                                 "calendar",
                                 car.year.to(str),
+                                server_error=State.car_errors.get("year", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -258,6 +264,7 @@ def _update_car_dialog(car):
                             "price",
                             "dollar-sign",
                             car.price.to(str),
+                            server_error=State.car_errors.get("price", ""),
                         ),
                         direction="column",
                         spacing="3",
@@ -270,11 +277,9 @@ def _update_car_dialog(car):
                                 color_scheme="gray",
                             ),
                         ),
-                        rx.form.submit(
-                            rx.dialog.close(
-                                rx.button("Update Car"),
-                            ),
-                            as_child=True,
+                        rx.button(
+                            "Update Car",
+                            type="submit",
                         ),
                         padding_top="2em",
                         spacing="3",
@@ -293,6 +298,8 @@ def _update_car_dialog(car):
             border=f"2px solid {rx.color('accent', 7)}",
             border_radius="25px",
         ),
+        open=State.edit_car_dialog_open,
+        on_open_change=State.set_edit_car_dialog_open,
     )
 
 
