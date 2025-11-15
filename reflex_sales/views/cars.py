@@ -82,6 +82,7 @@ def _add_car_button() -> rx.Component:
                                 "text",
                                 "make",
                                 "factory",
+                                server_error=State.car_errors.get("make", ""),
                             ),
                             # Model
                             form_field(
@@ -90,6 +91,7 @@ def _add_car_button() -> rx.Component:
                                 "text",
                                 "model",
                                 "car",
+                                server_error=State.car_errors.get("model", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -102,6 +104,7 @@ def _add_car_button() -> rx.Component:
                                 "text",
                                 "version",
                                 "settings",
+                                server_error=State.car_errors.get("version", ""),
                             ),
                             # Year
                             form_field(
@@ -110,6 +113,7 @@ def _add_car_button() -> rx.Component:
                                 "number",
                                 "year",
                                 "calendar",
+                                server_error=State.car_errors.get("year", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -121,6 +125,7 @@ def _add_car_button() -> rx.Component:
                             "number",
                             "price",
                             "dollar-sign",
+                            server_error=State.car_errors.get("price", ""),
                         ),
                         width="100%",
                         direction="column",

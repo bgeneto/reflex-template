@@ -10,6 +10,7 @@ def form_field(
     default_value: str = "",
     required: bool = True,
     on_change=None,
+    server_error: str = "",
 ) -> rx.Component:
     return rx.form.field(
         rx.flex(
@@ -37,6 +38,7 @@ def form_field(
                 ),
                 as_child=True,
             ),
+            # Client-side HTML5 validation messages
             rx.form.message(
                 f"{label} is required",
                 match="valueMissing",
@@ -54,6 +56,15 @@ def form_field(
                 match="badInput",
                 color="red",
                 size="1",
+            ),
+            # Server-side validation error
+            rx.cond(
+                server_error != "",
+                rx.text(
+                    server_error,
+                    color="red",
+                    size="1",
+                ),
             ),
             direction="column",
             spacing="1",

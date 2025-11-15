@@ -2,6 +2,7 @@ import os
 
 import openai
 import reflex as rx
+from pydantic import ValidationError
 from sqlmodel import asc, desc, func, or_, select
 
 from .models import Car, Customer
@@ -80,35 +81,16 @@ class State(rx.State):
     sort_reverse: bool = False
 
     # Form validation states
-    show_customer_dialog: bool = False
-    show_car_dialog: bool = False
-    show_edit_customer_dialog: bool = False
-    show_edit_car_dialog: bool = False
+    customer_errors: dict[str, str] = {}
+    car_errors: dict[str, str] = {}
 
-    @rx.var
-    def can_submit_customer(self) -> bool:
-        """Check if customer form is valid."""
-        return bool(
-            self.current_user.customer_name
-            and self.current_user.email
-            and "@" in self.current_user.email
-            and self.current_user.location
-            and self.current_user.job
-            and self.current_user.gender
-            and self.current_user.age > 0
-            and self.current_user.salary >= 0
-        )
-
-    @rx.var
-    def can_submit_car(self) -> bool:
-        """Check if car form is valid."""
-        return bool(
-            self.current_car.make
-            and self.current_car.model
-            and self.current_car.version
-            and self.current_car.year > 0
-            and self.current_car.price >= 0
-        )
+    def _map_pydantic_errors(self, exc: ValidationError) -> dict[str, str]:
+        """Convert Pydantic ValidationError to field->message dict."""
+        errors = {}
+        for err in exc.errors():
+            field = err["loc"][0] if err["loc"] else "field"
+            errors[str(field)] = err["msg"]
+        return errors
 
     @rx.event
     def set_tone(self, value: str):
@@ -399,53 +381,36 @@ class State(rx.State):
         self.current_car = car
 
     def add_car_to_db(self, form_data: dict):
+        # Clear previous errors
+        self.car_errors = {}
+
         try:
-            # Validate form data
-            if not form_data.get("make", "").strip():
-                return rx.toast.error(
-                    "Make is required",
-                    position="bottom-right",
-                )
-            if not form_data.get("model", "").strip():
-                return rx.toast.error(
-                    "Model is required",
-                    position="bottom-right",
-                )
-            if not form_data.get("version", "").strip():
-                return rx.toast.error(
-                    "Version is required",
-                    position="bottom-right",
-                )
+            # Convert string inputs to proper types
+            form_data["year"] = int(form_data.get("year", 0))
+            form_data["price"] = int(form_data.get("price", 0))
 
-            # Convert and validate year and price as integers
-            try:
-                year = int(form_data.get("year", 0))
-                price = int(form_data.get("price", 0))
-            except (ValueError, TypeError):
-                return rx.toast.error(
-                    "Year and Price must be valid numbers",
-                    position="bottom-right",
-                )
-
-            form_data["year"] = year
-            form_data["price"] = price
-
-            # Create and validate car object
+            # Pydantic validation via Car model
             self.current_car = Car(**form_data)
 
             with rx.session() as session:
                 session.add(self.current_car)
                 session.commit()
                 session.refresh(self.current_car)
+
             self.load_cars_entries()
-            self.show_car_dialog = False
             return rx.toast.success(
                 f"Car {self.current_car.make} {self.current_car.model} has been added.",
                 position="bottom-right",
             )
-        except ValueError as e:
+        except ValidationError as e:
+            # Map Pydantic errors to state
+            self.car_errors = self._map_pydantic_errors(e)
+            # Show first error as toast
+            first_error = next(iter(self.car_errors.values()), "Validation failed")
+            return rx.toast.error(first_error, position="bottom-right")
+        except (ValueError, TypeError) as e:
             return rx.toast.error(
-                str(e),
+                f"Invalid input: {str(e)}",
                 position="bottom-right",
             )
         except Exception as e:

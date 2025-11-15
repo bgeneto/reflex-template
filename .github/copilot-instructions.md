@@ -31,11 +31,110 @@ This is a **Reflex-based full-stack web application** that generates personalize
 - System prompt defines Reflex as the company selling predefined products in `products` dict
 - Stream processing: check `hasattr(item.choices[0].delta, "content")` before accessing response text
 
+### Form Validation Pattern (CRITICAL)
+**This project uses Pydantic server-side validation as the authoritative validation layer.**
+
+#### Validation Architecture
+1. **Pydantic Models**: All validation rules live in `models.py` using `@field_validator` decorators
+2. **State Error Tracking**: State class maintains `{model}_errors: dict[str, str]` for each form (e.g., `customer_errors`, `car_errors`)
+3. **Error Mapping**: Use `_map_pydantic_errors(exc: ValidationError) -> dict[str, str]` to convert Pydantic errors to field->message dict
+4. **UI Display**: Form fields accept `server_error` parameter to display validation errors below the field
+
+#### Implementation Contract
+```python
+# backend.py - State class
+class State(rx.State):
+    # Error state for each form
+    customer_errors: dict[str, str] = {}
+    car_errors: dict[str, str] = {}
+
+    def _map_pydantic_errors(self, exc: ValidationError) -> dict[str, str]:
+        """Convert Pydantic ValidationError to field->message dict."""
+        errors = {}
+        for err in exc.errors():
+            field = err["loc"][0] if err["loc"] else "field"
+            errors[str(field)] = err["msg"]
+        return errors
+
+    def add_entity_to_db(self, form_data: dict):
+        # Clear previous errors
+        self.entity_errors = {}
+
+        try:
+            # Type conversion BEFORE Pydantic validation
+            form_data["numeric_field"] = int(form_data.get("numeric_field", 0))
+
+            # Let Pydantic validate via model instantiation
+            entity = EntityModel(**form_data)
+
+            # Database operations...
+            return rx.toast.success("Success message")
+
+        except ValidationError as e:
+            self.entity_errors = self._map_pydantic_errors(e)
+            first_error = next(iter(self.entity_errors.values()), "Validation failed")
+            return rx.toast.error(first_error, position="bottom-right")
+        except Exception as e:
+            return rx.toast.error(f"Error: {str(e)}", position="bottom-right")
+```
+
+```python
+# models.py - Validation rules
+from pydantic import field_validator
+
+class Entity(rx.Model, table=True):
+    field_name: str
+
+    @field_validator("field_name")
+    @classmethod
+    def validate_field_name(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field name is required")
+        if len(v.strip()) < 2:
+            raise ValueError("Field name must be at least 2 characters")
+        return v.strip()
+```
+
+```python
+# views/form.py - UI integration
+form_field(
+    "Field Name",
+    "Placeholder",
+    "text",
+    "field_name",
+    "icon-name",
+    server_error=State.entity_errors.get("field_name", ""),
+)
+```
+
+#### Validation Rules
+- **Client-side**: HTML5 validation with `required` attribute prevents empty submission
+- **Server-side**: Pydantic validates ALL constraints (format, length, range, custom logic)
+- **Error Display**: Combination of `rx.form.message` for HTML5 validation + `server_error` for Pydantic errors
+- **Toast Notifications**: Show first error on validation failure, success message on save
+- **No Duplicate Logic**: All validation rules exist ONLY in Pydantic model validators
+
+#### Form Field Component Contract
+```python
+def form_field(
+    label: str,
+    placeholder: str,
+    type: str,
+    name: str,
+    icon: str,
+    default_value: str = "",
+    required: bool = True,
+    on_change=None,
+    server_error: str = "",  # REQUIRED: Pass State.errors.get(field_name, "")
+) -> rx.Component:
+```
+
 ### View Component Pattern
 - Views are **pure functions returning `rx.Component`** with NO internal state
 - Bind state directly: `State.current_user.customer_name` renders reactively
 - Use `on_click=State.method_name(arg)` syntax to trigger state methods
 - Conditional rendering: `rx.cond(condition, component_if_true, component_if_false)`
+- **Always pass server validation errors** to form fields via `server_error` parameter
 
 ### Responsive Design
 - Use list-based breakpoints: `width=["100%", "100%", "100%", "60%"]` = `[mobile, tablet, laptop, desktop]`
@@ -73,8 +172,21 @@ Launches at `http://localhost:3000`
 
 **Adding a new field to Customer**:
 1. Add field to `Customer` model in `models.py`
-2. Add form field in table view using `form_field()` helper
-3. Update state methods that create/update customers
+2. Add `@field_validator` with validation rules (required, format, range, etc.)
+3. Add form field in view using `form_field()` helper with `server_error=State.customer_errors.get("field_name", "")`
+4. Update state methods that create/update customers
+5. Ensure type conversion happens before Pydantic validation in state methods
+
+**Adding a new form/model**:
+1. Create model in `models.py` with Pydantic `@field_validator` decorators
+2. Add `{model}_errors: dict[str, str] = {}` to State class
+3. Create add/update methods in State that:
+   - Clear errors: `self.model_errors = {}`
+   - Convert types before validation
+   - Catch `ValidationError` and map with `_map_pydantic_errors()`
+   - Return appropriate toasts
+4. Create view with form fields passing `server_error` from state
+5. Bind form `on_submit` to State method
 
 **Extending OpenAI integration**:
 - Modify system prompt in `State.call_openai()` method
