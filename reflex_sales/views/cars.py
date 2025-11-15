@@ -4,6 +4,180 @@ from ..backend.backend import Car, State
 from ..components.form_field import form_field
 
 
+def _filters_component() -> rx.Component:
+    """Component for filtering the car table."""
+    return rx.accordion.root(
+        rx.accordion.item(
+            header=rx.accordion.header(
+                rx.hstack(
+                    rx.icon("filter", size=18),
+                    rx.text("Filter Options", size="3", weight="medium"),
+                    spacing="2",
+                ),
+            ),
+            content=rx.accordion.content(
+                rx.grid(
+                    # Make filter
+                    rx.vstack(
+                        rx.text("Make", size="2", weight="medium"),
+                        rx.select(
+                            State.car_makes_options,
+                            value=State.filter_car_make,
+                            on_change=State.set_filter_car_make,
+                            placeholder="All Makes",
+                            size="2",
+                            width="100%",
+                        ),
+                        align="start",
+                        spacing="1",
+                        width="100%",
+                    ),
+                    # Year range filter
+                    rx.vstack(
+                        rx.text("Year Range", size="2", weight="medium"),
+                        rx.hstack(
+                            rx.input(
+                                placeholder="Min",
+                                value=State.filter_car_min_year,
+                                on_change=State.set_filter_car_min_year,
+                                type="number",
+                                size="2",
+                                width="100%",
+                            ),
+                            rx.input(
+                                placeholder="Max",
+                                value=State.filter_car_max_year,
+                                on_change=State.set_filter_car_max_year,
+                                type="number",
+                                size="2",
+                                width="100%",
+                            ),
+                            spacing="2",
+                            width="100%",
+                        ),
+                        align="start",
+                        spacing="1",
+                        width="100%",
+                    ),
+                    # Price range filter
+                    rx.vstack(
+                        rx.text("Price Range", size="2", weight="medium"),
+                        rx.hstack(
+                            rx.input(
+                                placeholder="Min",
+                                value=State.filter_car_min_price,
+                                on_change=State.set_filter_car_min_price,
+                                type="number",
+                                size="2",
+                                width="100%",
+                            ),
+                            rx.input(
+                                placeholder="Max",
+                                value=State.filter_car_max_price,
+                                on_change=State.set_filter_car_max_price,
+                                type="number",
+                                size="2",
+                                width="100%",
+                            ),
+                            spacing="2",
+                            width="100%",
+                        ),
+                        align="start",
+                        spacing="1",
+                        width="100%",
+                    ),
+                    # Filter buttons
+                    rx.vstack(
+                        rx.text(
+                            "Actions", size="2", weight="medium", color="transparent"
+                        ),
+                        rx.hstack(
+                            rx.button(
+                                "Apply",
+                                on_click=State.apply_car_filters,
+                                size="2",
+                                variant="solid",
+                            ),
+                            rx.button(
+                                "Reset",
+                                on_click=State.reset_car_filters,
+                                size="2",
+                                variant="soft",
+                                color_scheme="gray",
+                            ),
+                            spacing="2",
+                            width="100%",
+                        ),
+                        align="start",
+                        spacing="1",
+                        width="100%",
+                    ),
+                    columns="4",
+                    spacing="4",
+                    width="100%",
+                ),
+                padding_top="1em",
+            ),
+            value="filters",
+        ),
+        collapsible=True,
+        variant="ghost",
+        width="100%",
+        margin_bottom="1em",
+    )
+
+
+def _pagination_controls() -> rx.Component:
+    """Pagination controls for the car table."""
+    return rx.flex(
+        rx.hstack(
+            rx.text("Rows per page:", size="2", weight="medium", white_space="nowrap"),
+            rx.select(
+                ["10", "25", "50"],
+                value=State.car_page_size.to(str),
+                on_change=State.set_car_page_size,
+                size="2",
+            ),
+            spacing="2",
+            align="center",
+        ),
+        rx.spacer(),
+        rx.hstack(
+            rx.text(
+                "Page ",
+                State.car_current_page,
+                " of ",
+                State.car_total_pages,
+                size="2",
+                weight="medium",
+                white_space="nowrap",
+            ),
+            rx.button(
+                rx.icon("chevron-left", size=18),
+                on_click=lambda: State.go_to_car_page(State.car_current_page - 1),
+                disabled=State.car_current_page <= 1,
+                size="2",
+                variant="soft",
+            ),
+            rx.button(
+                rx.icon("chevron-right", size=18),
+                on_click=lambda: State.go_to_car_page(State.car_current_page + 1),
+                disabled=State.car_current_page >= State.car_total_pages,
+                size="2",
+                variant="soft",
+            ),
+            spacing="2",
+            align="center",
+        ),
+        align="center",
+        justify="between",
+        width="100%",
+        padding_top="1em",
+        border_top=f"1px solid {rx.color('gray', 6)}",
+        wrap="nowrap",
+    )
+
+
 def _header_cell(text: str, icon: str):
     return rx.table.column_header_cell(
         rx.hstack(
@@ -371,6 +545,9 @@ def _delete_car_dialog(car):
 
 def cars_table():
     return rx.fragment(
+        # Filters section
+        _filters_component(),
+        # Search and sort controls
         rx.flex(
             _add_car_button(),
             rx.spacer(),
@@ -421,6 +598,7 @@ def cars_table():
             overflow_x="auto",
             min_width="0",
         ),
+        # Table
         rx.table.root(
             rx.table.header(
                 rx.table.row(
@@ -438,4 +616,6 @@ def cars_table():
             width="100%",
             overflow_x="auto",
         ),
+        # Pagination controls
+        _pagination_controls(),
     )

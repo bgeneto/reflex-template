@@ -71,6 +71,18 @@ class State(rx.State):
     sort_car_reverse: bool = False
     add_car_dialog_open: bool = False
     edit_car_dialog_open: bool = False
+
+    # Car filtering and pagination
+    filter_car_make: str = "all"
+    filter_car_min_year: str = ""
+    filter_car_max_year: str = ""
+    filter_car_min_price: str = ""
+    filter_car_max_price: str = ""
+    car_current_page: int = 1
+    car_page_size: int = 10
+    car_total_items: int = 0
+    _unique_car_makes: list[str] = []
+
     products: dict[str, str] = {}
     email_content_data: str = (
         "Click 'Generate Email' to generate a personalized sales email."
@@ -85,6 +97,25 @@ class State(rx.State):
     # Form validation states
     customer_errors: dict[str, str] = {}
     car_errors: dict[str, str] = {}
+
+    @rx.var
+    def unique_car_makes(self) -> list[str]:
+        """Get unique car makes for filter dropdown."""
+        return self._unique_car_makes
+
+    @rx.var
+    def car_makes_options(self) -> list[str]:
+        """Get car makes options including 'all' for filter dropdown."""
+        return ["all"] + self._unique_car_makes
+
+    @rx.var
+    def car_total_pages(self) -> int:
+        """Calculate total pages for car pagination."""
+        return (
+            -(-self.car_total_items // self.car_page_size)
+            if self.car_total_items > 0
+            else 1
+        )
 
     def _map_pydantic_errors(self, exc: ValidationError) -> dict[str, str]:
         """Convert Pydantic ValidationError to field->message dict."""
@@ -157,20 +188,62 @@ class State(rx.State):
         """Get all cars from the database."""
         with rx.session() as session:
             query = select(Car)
+
+            # Apply search filter
             if self.search_car_value:
                 search_value = f"%{str(self.search_car_value).lower()}%"
                 query = query.where(
                     or_(
-                        *[
-                            getattr(Car, field).ilike(search_value)
-                            for field in Car.model_fields.keys()
-                        ],
+                        Car.make.ilike(search_value),
+                        Car.model.ilike(search_value),
+                        Car.version.ilike(search_value),
                     )
                 )
 
+            # Apply make filter
+            if self.filter_car_make and self.filter_car_make != "all":
+                query = query.where(Car.make == self.filter_car_make)
+
+            # Apply year range filter
+            if self.filter_car_min_year:
+                try:
+                    min_year = int(self.filter_car_min_year)
+                    query = query.where(Car.year >= min_year)
+                except ValueError:
+                    pass
+
+            if self.filter_car_max_year:
+                try:
+                    max_year = int(self.filter_car_max_year)
+                    query = query.where(Car.year <= max_year)
+                except ValueError:
+                    pass
+
+            # Apply price range filter
+            if self.filter_car_min_price:
+                try:
+                    min_price = float(self.filter_car_min_price)
+                    query = query.where(Car.price >= min_price)
+                except ValueError:
+                    pass
+
+            if self.filter_car_max_price:
+                try:
+                    max_price = float(self.filter_car_max_price)
+                    query = query.where(Car.price <= max_price)
+                except ValueError:
+                    pass
+
+            # Get total count for pagination
+            total_count_query = select(func.count()).select_from(
+                query.with_only_columns(Car.id).alias()
+            )
+            self.car_total_items = session.exec(total_count_query).one()
+
+            # Apply sorting
             if self.sort_car_value:
                 sort_column = getattr(Car, self.sort_car_value)
-                if self.sort_car_value == "price":
+                if self.sort_car_value in ["price", "year"]:
                     order = (
                         desc(sort_column) if self.sort_car_reverse else asc(sort_column)
                     )
@@ -182,7 +255,17 @@ class State(rx.State):
                     )
                 query = query.order_by(order)
 
+            # Apply pagination
+            offset = (self.car_current_page - 1) * self.car_page_size
+            query = query.offset(offset).limit(self.car_page_size)
+
             self.cars = session.exec(query).all()
+
+            # Load unique makes for filter dropdown
+            if not self._unique_car_makes:
+                makes_query = select(Car.make).distinct()
+                makes = session.exec(makes_query).all()
+                self._unique_car_makes = sorted(makes)
 
     def sort_car_values(self, sort_value: str):
         self.sort_car_value = sort_value
@@ -194,6 +277,54 @@ class State(rx.State):
 
     def filter_car_values(self, search_value):
         self.search_car_value = search_value
+        self.car_current_page = 1
+        self.load_cars_entries()
+
+    @rx.event
+    def set_filter_car_make(self, value: str):
+        self.filter_car_make = value
+
+    @rx.event
+    def set_filter_car_min_year(self, value: str):
+        self.filter_car_min_year = value
+
+    @rx.event
+    def set_filter_car_max_year(self, value: str):
+        self.filter_car_max_year = value
+
+    @rx.event
+    def set_filter_car_min_price(self, value: str):
+        self.filter_car_min_price = value
+
+    @rx.event
+    def set_filter_car_max_price(self, value: str):
+        self.filter_car_max_price = value
+
+    @rx.event
+    def apply_car_filters(self):
+        self.car_current_page = 1
+        self.load_cars_entries()
+
+    @rx.event
+    def reset_car_filters(self):
+        self.filter_car_make = "all"
+        self.filter_car_min_year = ""
+        self.filter_car_max_year = ""
+        self.filter_car_min_price = ""
+        self.filter_car_max_price = ""
+        self.car_current_page = 1
+        self.load_cars_entries()
+
+    @rx.event
+    def set_car_page_size(self, size: str):
+        self.car_page_size = int(size)
+        self.car_current_page = 1
+        self.load_cars_entries()
+
+    @rx.event
+    def go_to_car_page(self, page_num: int):
+        self.car_current_page = max(1, min(page_num, self.car_total_pages))
+        self.load_cars_entries()
         self.load_cars_entries()
 
     def sort_values(self, sort_value: str):
