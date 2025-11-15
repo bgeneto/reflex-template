@@ -1,6 +1,5 @@
 import reflex as rx
 
-from .backend.backend import State
 from .views.cars import cars_table
 from .views.email import email_gen_ui
 from .views.sidebar import sidebar
@@ -70,21 +69,18 @@ app = rx.App(
 app.add_page(
     sales_page,
     route="/",
-    on_load=[State.load_entries, State.load_cars_entries],
     title="Sales App",
     description="Generate personalized sales emails.",
 )
 app.add_page(
     sales_page,
     route="/sales",
-    on_load=[State.load_entries, State.load_cars_entries],
     title="Sales App",
     description="Generate personalized sales emails.",
 )
 app.add_page(
     cars_page,
     route="/cars",
-    on_load=State.load_cars_entries,
     title="Cars Inventory",
     description="Manage cars inventory.",
 )

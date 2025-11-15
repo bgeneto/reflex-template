@@ -6,7 +6,7 @@ import reflex as rx
 from faker import Faker
 from sqlalchemy import text
 
-from reflex_sales.backend.models import Car
+from app.backend.models import Car
 
 # Initialize faker
 fake = Faker()

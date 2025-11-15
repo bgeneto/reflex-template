@@ -1,6 +1,7 @@
 import reflex as rx
 
-from ..backend.backend import Customer, State
+from ..backend.models import Customer
+from ..backend.user_state import UserState
 from ..components.form_field import form_field
 from ..components.gender_badges import gender_badge
 
@@ -37,20 +38,20 @@ def _show_customer(user: Customer):
         rx.table.cell(
             rx.hstack(
                 rx.cond(
-                    (State.current_user.id == user.id),
+                    (UserState.current_user.id == user.id),
                     rx.button(
                         rx.icon("mail-plus", size=22),
                         rx.text("Generate Email", size="3"),
                         color_scheme="blue",
-                        on_click=State.generate_email(user),
-                        loading=State.gen_response,
+                        on_click=UserState.generate_email(user),
+                        loading=UserState.gen_response,
                     ),
                     rx.button(
                         rx.icon("mail-plus", size=22),
                         rx.text("Generate Email", size="3"),
                         color_scheme="blue",
-                        on_click=State.generate_email(user),
-                        disabled=State.gen_response,
+                        on_click=UserState.generate_email(user),
+                        disabled=UserState.gen_response,
                     ),
                 ),
                 _update_customer_dialog(user),
@@ -196,7 +197,7 @@ def _add_customer_button() -> rx.Component:
                         mt="4",
                         justify="end",
                     ),
-                    on_submit=State.add_customer_to_db,
+                    on_submit=UserState.add_customer_to_db,
                     reset_on_submit=False,
                 ),
                 width="100%",
@@ -221,7 +222,7 @@ def _update_customer_dialog(user):
                 color_scheme="green",
                 size="2",
                 variant="solid",
-                on_click=lambda: State.get_user(user),
+                on_click=lambda: UserState.get_user(user),
             ),
         ),
         rx.dialog.content(
@@ -361,7 +362,7 @@ def _update_customer_dialog(user):
                         mt="4",
                         justify="end",
                     ),
-                    on_submit=State.update_customer_to_db,
+                    on_submit=UserState.update_customer_to_db,
                     reset_on_submit=False,
                 ),
                 width="100%",
@@ -426,7 +427,7 @@ def _delete_customer_dialog(user):
                     rx.button(
                         "Delete Customer",
                         color_scheme="red",
-                        on_click=lambda: State.delete_customer(user.id),
+                        on_click=lambda: UserState.delete_customer(user.id),
                     ),
                 ),
                 padding_top="2em",
@@ -443,25 +444,26 @@ def _delete_customer_dialog(user):
 
 
 def main_table():
-    return rx.fragment(
+    return rx.vstack(
+        rx.box(on_mount=UserState.on_mount_load),  # Load customers on mount
         rx.flex(
             _add_customer_button(),
             rx.spacer(),
             rx.cond(
-                State.sort_reverse,
+                UserState.sort_reverse,
                 rx.icon(
                     "arrow-down-z-a",
                     size=28,
                     stroke_width=1.5,
                     cursor="pointer",
-                    on_click=State.toggle_sort,
+                    on_click=UserState.toggle_sort,
                 ),
                 rx.icon(
                     "arrow-down-a-z",
                     size=28,
                     stroke_width=1.5,
                     cursor="pointer",
-                    on_click=State.toggle_sort,
+                    on_click=UserState.toggle_sort,
                 ),
             ),
             rx.select(
@@ -476,7 +478,7 @@ def main_table():
                 ],
                 placeholder="Sort By: Name",
                 size="3",
-                on_change=lambda sort_value: State.sort_values(sort_value),
+                on_change=lambda sort_value: UserState.sort_values(sort_value),
             ),
             rx.input(
                 rx.input.slot(rx.icon("search")),
@@ -485,7 +487,7 @@ def main_table():
                 min_width="225px",
                 width="225px",
                 variant="surface",
-                on_change=lambda value: State.filter_values(value),
+                on_change=lambda value: UserState.filter_values(value),
             ),
             justify="end",
             align="center",
@@ -508,10 +510,12 @@ def main_table():
                     _header_cell("Actions", "cog"),
                 ),
             ),
-            rx.table.body(rx.foreach(State.users, _show_customer)),
+            rx.table.body(rx.foreach(UserState.users, _show_customer)),
             variant="surface",
             size="3",
             width="100%",
             overflow_x="auto",
         ),
+        spacing="4",
+        width="100%",
     )

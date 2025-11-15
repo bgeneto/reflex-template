@@ -1,6 +1,7 @@
 import reflex as rx
 
-from ..backend.backend import Car, State
+from ..backend.car_state import CarState
+from ..backend.models import Car
 from ..components.form_field import form_field
 
 
@@ -21,9 +22,9 @@ def _filters_component() -> rx.Component:
                     rx.vstack(
                         rx.text("Make", size="2", weight="medium"),
                         rx.select(
-                            State.car_makes_options,
-                            value=State.filter_car_make,
-                            on_change=State.set_filter_car_make,
+                            CarState.car_makes_options,
+                            value=CarState.filter_car_make,
+                            on_change=CarState.set_filter_car_make,
                             placeholder="All Makes",
                             size="2",
                             width="100%",
@@ -38,16 +39,16 @@ def _filters_component() -> rx.Component:
                         rx.hstack(
                             rx.input(
                                 placeholder="Min",
-                                value=State.filter_car_min_year,
-                                on_change=State.set_filter_car_min_year,
+                                value=CarState.filter_car_min_year,
+                                on_change=CarState.set_filter_car_min_year,
                                 type="number",
                                 size="2",
                                 width="100%",
                             ),
                             rx.input(
                                 placeholder="Max",
-                                value=State.filter_car_max_year,
-                                on_change=State.set_filter_car_max_year,
+                                value=CarState.filter_car_max_year,
+                                on_change=CarState.set_filter_car_max_year,
                                 type="number",
                                 size="2",
                                 width="100%",
@@ -65,16 +66,16 @@ def _filters_component() -> rx.Component:
                         rx.hstack(
                             rx.input(
                                 placeholder="Min",
-                                value=State.filter_car_min_price,
-                                on_change=State.set_filter_car_min_price,
+                                value=CarState.filter_car_min_price,
+                                on_change=CarState.set_filter_car_min_price,
                                 type="number",
                                 size="2",
                                 width="100%",
                             ),
                             rx.input(
                                 placeholder="Max",
-                                value=State.filter_car_max_price,
-                                on_change=State.set_filter_car_max_price,
+                                value=CarState.filter_car_max_price,
+                                on_change=CarState.set_filter_car_max_price,
                                 type="number",
                                 size="2",
                                 width="100%",
@@ -94,13 +95,13 @@ def _filters_component() -> rx.Component:
                         rx.hstack(
                             rx.button(
                                 "Apply",
-                                on_click=State.apply_car_filters,
+                                on_click=CarState.apply_car_filters,
                                 size="2",
                                 variant="solid",
                             ),
                             rx.button(
                                 "Reset",
-                                on_click=State.reset_car_filters,
+                                on_click=CarState.reset_car_filters,
                                 size="2",
                                 variant="soft",
                                 color_scheme="gray",
@@ -121,7 +122,7 @@ def _filters_component() -> rx.Component:
             value="filters",
         ),
         collapsible=True,
-        variant="ghost",
+        variant="surface",
         width="100%",
         margin_bottom="1em",
     )
@@ -134,8 +135,8 @@ def _pagination_controls() -> rx.Component:
             rx.text("Rows per page:", size="2", weight="medium", white_space="nowrap"),
             rx.select(
                 ["10", "25", "50"],
-                value=State.car_page_size.to_string(),
-                on_change=State.set_car_page_size,
+                value=CarState.car_page_size.to_string(),
+                on_change=CarState.set_car_page_size,
                 size="2",
             ),
             spacing="2",
@@ -145,24 +146,24 @@ def _pagination_controls() -> rx.Component:
         rx.hstack(
             rx.text(
                 "Page ",
-                State.car_current_page,
+                CarState.car_current_page,
                 " of ",
-                State.car_total_pages,
+                CarState.car_total_pages,
                 size="2",
                 weight="medium",
                 white_space="nowrap",
             ),
             rx.button(
                 rx.icon("chevron-left", size=18),
-                on_click=lambda: State.go_to_car_page(State.car_current_page - 1),
-                disabled=State.car_current_page <= 1,
+                on_click=lambda: CarState.go_to_car_page(CarState.car_current_page - 1),
+                disabled=CarState.car_current_page <= 1,
                 size="2",
                 variant="soft",
             ),
             rx.button(
                 rx.icon("chevron-right", size=18),
-                on_click=lambda: State.go_to_car_page(State.car_current_page + 1),
-                disabled=State.car_current_page >= State.car_total_pages,
+                on_click=lambda: CarState.go_to_car_page(CarState.car_current_page + 1),
+                disabled=CarState.car_current_page >= CarState.car_total_pages,
                 size="2",
                 variant="soft",
             ),
@@ -256,7 +257,7 @@ def _add_car_button() -> rx.Component:
                                 "text",
                                 "make",
                                 "factory",
-                                server_error=State.car_errors.get("make", ""),
+                                server_error=CarState.car_errors.get("make", ""),
                             ),
                             # Model
                             form_field(
@@ -265,7 +266,7 @@ def _add_car_button() -> rx.Component:
                                 "text",
                                 "model",
                                 "car",
-                                server_error=State.car_errors.get("model", ""),
+                                server_error=CarState.car_errors.get("model", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -278,7 +279,7 @@ def _add_car_button() -> rx.Component:
                                 "text",
                                 "version",
                                 "settings",
-                                server_error=State.car_errors.get("version", ""),
+                                server_error=CarState.car_errors.get("version", ""),
                             ),
                             # Year
                             form_field(
@@ -287,7 +288,7 @@ def _add_car_button() -> rx.Component:
                                 "number",
                                 "year",
                                 "calendar",
-                                server_error=State.car_errors.get("year", ""),
+                                server_error=CarState.car_errors.get("year", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -299,7 +300,7 @@ def _add_car_button() -> rx.Component:
                             "number",
                             "price",
                             "dollar-sign",
-                            server_error=State.car_errors.get("price", ""),
+                            server_error=CarState.car_errors.get("price", ""),
                         ),
                         width="100%",
                         direction="column",
@@ -322,7 +323,7 @@ def _add_car_button() -> rx.Component:
                         mt="4",
                         justify="end",
                     ),
-                    on_submit=State.add_car_to_db,
+                    on_submit=CarState.add_car_to_db,
                     reset_on_submit=True,
                 ),
                 width="100%",
@@ -336,8 +337,8 @@ def _add_car_button() -> rx.Component:
             border=f"2.5px solid {rx.color('accent', 7)}",
             border_radius="25px",
         ),
-        open=State.add_car_dialog_open,
-        on_open_change=State.set_add_car_dialog_open,
+        open=CarState.add_car_dialog_open,
+        on_open_change=CarState.set_add_car_dialog_open,
     )
 
 
@@ -349,7 +350,7 @@ def _update_car_dialog(car):
                 color_scheme="green",
                 size="2",
                 variant="solid",
-                on_click=lambda: State.get_car(car),
+                on_click=lambda: CarState.get_car(car),
             ),
         ),
         rx.dialog.content(
@@ -391,7 +392,7 @@ def _update_car_dialog(car):
                                 "make",
                                 "factory",
                                 car.make,
-                                server_error=State.car_errors.get("make", ""),
+                                server_error=CarState.car_errors.get("make", ""),
                             ),
                             # Model
                             form_field(
@@ -401,7 +402,7 @@ def _update_car_dialog(car):
                                 "model",
                                 "car",
                                 car.model,
-                                server_error=State.car_errors.get("model", ""),
+                                server_error=CarState.car_errors.get("model", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -415,7 +416,7 @@ def _update_car_dialog(car):
                                 "version",
                                 "settings",
                                 car.version,
-                                server_error=State.car_errors.get("version", ""),
+                                server_error=CarState.car_errors.get("version", ""),
                             ),
                             # Year
                             form_field(
@@ -425,7 +426,7 @@ def _update_car_dialog(car):
                                 "year",
                                 "calendar",
                                 car.year.to(str),
-                                server_error=State.car_errors.get("year", ""),
+                                server_error=CarState.car_errors.get("year", ""),
                             ),
                             spacing="3",
                             width="100%",
@@ -438,7 +439,7 @@ def _update_car_dialog(car):
                             "price",
                             "dollar-sign",
                             car.price.to(str),
-                            server_error=State.car_errors.get("price", ""),
+                            server_error=CarState.car_errors.get("price", ""),
                         ),
                         direction="column",
                         spacing="3",
@@ -460,7 +461,7 @@ def _update_car_dialog(car):
                         mt="4",
                         justify="end",
                     ),
-                    on_submit=State.update_car_to_db,
+                    on_submit=CarState.update_car_to_db,
                     reset_on_submit=False,
                 ),
                 width="100%",
@@ -472,8 +473,8 @@ def _update_car_dialog(car):
             border=f"2px solid {rx.color('accent', 7)}",
             border_radius="25px",
         ),
-        open=State.edit_car_dialog_open,
-        on_open_change=State.set_edit_car_dialog_open,
+        open=CarState.edit_car_dialog_open,
+        on_open_change=CarState.set_edit_car_dialog_open,
     )
 
 
@@ -527,7 +528,7 @@ def _delete_car_dialog(car):
                     rx.button(
                         "Delete Car",
                         color_scheme="red",
-                        on_click=lambda: State.delete_car(car.id),
+                        on_click=lambda: CarState.delete_car(car.id),
                     ),
                 ),
                 padding_top="2em",
@@ -544,7 +545,7 @@ def _delete_car_dialog(car):
 
 
 def cars_table():
-    return rx.fragment(
+    return rx.vstack(
         # Filters section
         _filters_component(),
         # Search and sort controls
@@ -552,20 +553,20 @@ def cars_table():
             _add_car_button(),
             rx.spacer(),
             rx.cond(
-                State.sort_car_reverse,
+                CarState.sort_car_reverse,
                 rx.icon(
                     "arrow-down-z-a",
                     size=28,
                     stroke_width=1.5,
                     cursor="pointer",
-                    on_click=State.toggle_car_sort,
+                    on_click=CarState.toggle_car_sort,
                 ),
                 rx.icon(
                     "arrow-down-a-z",
                     size=28,
                     stroke_width=1.5,
                     cursor="pointer",
-                    on_click=State.toggle_car_sort,
+                    on_click=CarState.toggle_car_sort,
                 ),
             ),
             rx.select(
@@ -578,7 +579,7 @@ def cars_table():
                 ],
                 placeholder="Sort By: Make",
                 size="3",
-                on_change=lambda sort_value: State.sort_car_values(sort_value),
+                on_change=lambda sort_value: CarState.sort_car_values(sort_value),
             ),
             rx.input(
                 rx.input.slot(rx.icon("search")),
@@ -587,7 +588,7 @@ def cars_table():
                 min_width="225px",
                 width="225px",
                 variant="surface",
-                on_change=lambda value: State.filter_car_values(value),
+                on_change=lambda value: CarState.filter_car_values(value),
             ),
             justify="end",
             align="center",
@@ -610,7 +611,7 @@ def cars_table():
                     _header_cell("Actions", "cog"),
                 ),
             ),
-            rx.table.body(rx.foreach(State.cars, _show_car)),
+            rx.table.body(rx.foreach(CarState.cars, _show_car)),
             variant="surface",
             size="3",
             width="100%",
@@ -618,4 +619,7 @@ def cars_table():
         ),
         # Pagination controls
         _pagination_controls(),
+        spacing="4",
+        width="100%",
+        on_mount=CarState.on_mount_load,  # Load cars when component mounts
     )

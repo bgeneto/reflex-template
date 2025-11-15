@@ -1,6 +1,6 @@
 import reflex as rx
 
-from ..backend.backend import State
+from ..backend.user_state import UserState
 
 
 def email_box():
@@ -12,7 +12,7 @@ def email_box():
                 color_scheme="gray",
                 size="2",
                 on_click=[
-                    rx.set_clipboard(State.email_content_data),
+                    rx.set_clipboard(UserState.email_content_data),
                     rx.toast.info("Copied to clipboard"),
                 ],
                 cursor="pointer",
@@ -21,7 +21,7 @@ def email_box():
                 right="1px",
                 z_index="10",
             ),
-            rx.text(State.email_content_data, line_height="1.75"),
+            rx.text(UserState.email_content_data, line_height="1.75"),
             type="auto",
             scrollbars="vertical",
             height="100%",
@@ -35,14 +35,14 @@ def email_box():
 def options():
     return rx.vstack(
         rx.vstack(
-            rx.heading(f"Length limit: {State.length}", size="5"),
+            rx.heading(f"Length limit: {UserState.length}", size="5"),
             rx.slider(
                 min=500,
                 max=1500,
                 default_value=1000,
                 step=25,
                 size="2",
-                on_change=State.set_length,
+                on_change=UserState.set_length,
             ),
             width="100%",
         ),
@@ -60,7 +60,7 @@ def options():
                 ],
                 default_value="😊 Formal",
                 size="3",
-                on_change=State.set_tone,
+                on_change=UserState.set_tone,
             ),
             width="100%",
         ),
