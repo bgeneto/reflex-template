@@ -134,7 +134,7 @@ def _pagination_controls() -> rx.Component:
             rx.text("Rows per page:", size="2", weight="medium", white_space="nowrap"),
             rx.select(
                 ["10", "25", "50"],
-                value=State.car_page_size.to(str),
+                value=State.car_page_size.to_string(),
                 on_change=State.set_car_page_size,
                 size="2",
             ),
