@@ -1,8 +1,7 @@
 import reflex as rx
 
-from ..backend.backend import Customer, State
+from ..backend.backend import Car, State
 from ..components.form_field import form_field
-from ..components.gender_badges import gender_badge
 
 
 def _header_cell(text: str, icon: str):
@@ -16,45 +15,18 @@ def _header_cell(text: str, icon: str):
     )
 
 
-def _show_customer(user: Customer):
-    """Show a customer in a table row."""
+def _show_car(car: Car):
+    """Show a car in a table row."""
     return rx.table.row(
-        rx.table.row_header_cell(user.customer_name),
-        rx.table.cell(user.email),
-        rx.table.cell(user.age),
-        rx.table.cell(
-            rx.match(
-                user.gender,
-                ("Male", gender_badge("Male")),
-                ("Female", gender_badge("Female")),
-                ("Other", gender_badge("Other")),
-                gender_badge("Other"),
-            )
-        ),
-        rx.table.cell(user.location),
-        rx.table.cell(user.job),
-        rx.table.cell(user.salary),
+        rx.table.row_header_cell(car.make),
+        rx.table.cell(car.model),
+        rx.table.cell(car.version),
+        rx.table.cell(car.year),
+        rx.table.cell(f"${car.price:,}"),
         rx.table.cell(
             rx.hstack(
-                rx.cond(
-                    (State.current_user.id == user.id),
-                    rx.button(
-                        rx.icon("mail-plus", size=22),
-                        rx.text("Generate Email", size="3"),
-                        color_scheme="blue",
-                        on_click=State.generate_email(user),
-                        loading=State.gen_response,
-                    ),
-                    rx.button(
-                        rx.icon("mail-plus", size=22),
-                        rx.text("Generate Email", size="3"),
-                        color_scheme="blue",
-                        on_click=State.generate_email(user),
-                        disabled=State.gen_response,
-                    ),
-                ),
-                _update_customer_dialog(user),
-                _delete_customer_dialog(user),
+                _update_car_dialog(car),
+                _delete_car_dialog(car),
                 min_width="max-content",
             )
         ),
@@ -63,31 +35,31 @@ def _show_customer(user: Customer):
     )
 
 
-def _add_customer_button() -> rx.Component:
+def _add_car_button() -> rx.Component:
     return rx.dialog.root(
         rx.dialog.trigger(
             rx.button(
                 rx.icon("plus", size=26),
-                rx.text("Add Customer", size="4", display=["none", "none", "block"]),
+                rx.text("Add Car", size="4", display=["none", "none", "block"]),
                 size="3",
             ),
         ),
         rx.dialog.content(
             rx.hstack(
                 rx.badge(
-                    rx.icon(tag="users", size=34),
+                    rx.icon(tag="car", size=34),
                     color_scheme="blue",
                     radius="full",
                     padding="0.65rem",
                 ),
                 rx.vstack(
                     rx.dialog.title(
-                        "Customer Onboarding",
+                        "Add New Car",
                         weight="bold",
                         margin="0",
                     ),
                     rx.dialog.description(
-                        "Fill the form with the customer's info",
+                        "Fill the form with the car's info",
                     ),
                     spacing="1",
                     height="100%",
@@ -103,75 +75,52 @@ def _add_customer_button() -> rx.Component:
                 rx.form.root(
                     rx.flex(
                         rx.hstack(
-                            # Name
+                            # Make
                             form_field(
-                                "Name",
-                                "Customer Name",
+                                "Make",
+                                "Toyota",
                                 "text",
-                                "customer_name",
-                                "user",
+                                "make",
+                                "factory",
                             ),
-                            # Location
+                            # Model
                             form_field(
-                                "Location",
-                                "Customer Location",
+                                "Model",
+                                "Camry",
                                 "text",
-                                "location",
-                                "map-pinned",
+                                "model",
+                                "car",
                             ),
                             spacing="3",
                             width="100%",
                         ),
                         rx.hstack(
-                            # Email
+                            # Version
                             form_field(
-                                "Email", "user@reflex.dev", "email", "email", "mail"
+                                "Version",
+                                "LE",
+                                "text",
+                                "version",
+                                "settings",
                             ),
-                            # Job
+                            # Year
                             form_field(
-                                "Job", "Customer Job", "text", "job", "briefcase"
+                                "Year",
+                                "2023",
+                                "number",
+                                "year",
+                                "calendar",
                             ),
                             spacing="3",
                             width="100%",
                         ),
-                        # Gender
-                        rx.vstack(
-                            rx.hstack(
-                                rx.icon("user-round", size=16, stroke_width=1.5),
-                                rx.text("Gender"),
-                                align="center",
-                                spacing="2",
-                            ),
-                            rx.select(
-                                ["Male", "Female", "Other"],
-                                placeholder="Select Gender",
-                                name="gender",
-                                direction="row",
-                                as_child=True,
-                                required=True,
-                                width="100%",
-                            ),
-                            width="100%",
-                        ),
-                        rx.hstack(
-                            # Age
-                            form_field(
-                                "Age",
-                                "Customer Age",
-                                "number",
-                                "age",
-                                "person-standing",
-                            ),
-                            # Salary
-                            form_field(
-                                "Salary",
-                                "Customer Salary",
-                                "number",
-                                "salary",
-                                "dollar-sign",
-                            ),
-                            spacing="3",
-                            width="100%",
+                        # Price
+                        form_field(
+                            "Price",
+                            "25000",
+                            "number",
+                            "price",
+                            "dollar-sign",
                         ),
                         width="100%",
                         direction="column",
@@ -185,19 +134,17 @@ def _add_customer_button() -> rx.Component:
                                 color_scheme="gray",
                             ),
                         ),
-                        rx.form.submit(
-                            rx.dialog.close(
-                                rx.button("Submit Customer"),
-                            ),
-                            as_child=True,
+                        rx.button(
+                            "Submit Car",
+                            type="submit",
                         ),
                         padding_top="2em",
                         spacing="3",
                         mt="4",
                         justify="end",
                     ),
-                    on_submit=State.add_customer_to_db,
-                    reset_on_submit=False,
+                    on_submit=State.add_car_to_db,
+                    reset_on_submit=True,
                 ),
                 width="100%",
                 direction="column",
@@ -213,7 +160,7 @@ def _add_customer_button() -> rx.Component:
     )
 
 
-def _update_customer_dialog(user):
+def _update_car_dialog(car):
     return rx.dialog.root(
         rx.dialog.trigger(
             rx.icon_button(
@@ -221,7 +168,7 @@ def _update_customer_dialog(user):
                 color_scheme="green",
                 size="2",
                 variant="solid",
-                on_click=lambda: State.get_user(user),
+                on_click=lambda: State.get_car(car),
             ),
         ),
         rx.dialog.content(
@@ -234,12 +181,12 @@ def _update_customer_dialog(user):
                 ),
                 rx.vstack(
                     rx.dialog.title(
-                        "Edit Customer",
+                        "Edit Car",
                         weight="bold",
                         margin="0",
                     ),
                     rx.dialog.description(
-                        "Edit the customer's info",
+                        "Edit the car's info",
                     ),
                     spacing="1",
                     height="100%",
@@ -255,89 +202,57 @@ def _update_customer_dialog(user):
                 rx.form.root(
                     rx.flex(
                         rx.hstack(
-                            # Name
+                            # Make
                             form_field(
-                                "Name",
-                                "Customer Name",
+                                "Make",
+                                "Toyota",
                                 "text",
-                                "customer_name",
-                                "user",
-                                user.customer_name,
+                                "make",
+                                "factory",
+                                car.make,
                             ),
-                            # Location
+                            # Model
                             form_field(
-                                "Location",
-                                "Customer Location",
+                                "Model",
+                                "Camry",
                                 "text",
-                                "location",
-                                "map-pinned",
-                                user.location,
+                                "model",
+                                "car",
+                                car.model,
                             ),
                             spacing="3",
                             width="100%",
                         ),
                         rx.hstack(
-                            # Email
+                            # Version
                             form_field(
-                                "Email",
-                                "user@reflex.dev",
-                                "email",
-                                "email",
-                                "mail",
-                                user.email,
-                            ),
-                            # Job
-                            form_field(
-                                "Job",
-                                "Customer Job",
+                                "Version",
+                                "LE",
                                 "text",
-                                "job",
-                                "briefcase",
-                                user.job,
+                                "version",
+                                "settings",
+                                car.version,
+                            ),
+                            # Year
+                            form_field(
+                                "Year",
+                                "2023",
+                                "number",
+                                "year",
+                                "calendar",
+                                car.year.to(str),
                             ),
                             spacing="3",
                             width="100%",
                         ),
-                        # Gender
-                        rx.vstack(
-                            rx.hstack(
-                                rx.icon("user-round", size=16, stroke_width=1.5),
-                                rx.text("Gender"),
-                                align="center",
-                                spacing="2",
-                            ),
-                            rx.select(
-                                ["Male", "Female", "Other"],
-                                default_value=user.gender,
-                                name="gender",
-                                direction="row",
-                                as_child=True,
-                                required=True,
-                                width="100%",
-                            ),
-                            width="100%",
-                        ),
-                        rx.hstack(
-                            # Age
-                            form_field(
-                                "Age",
-                                "Customer Age",
-                                "number",
-                                "age",
-                                "person-standing",
-                                user.age.to(str),
-                            ),
-                            # Salary
-                            form_field(
-                                "Salary",
-                                "Customer Salary",
-                                "number",
-                                "salary",
-                                "dollar-sign",
-                                user.salary.to(str),
-                            ),
-                            spacing="3",
-                            width="100%",
+                        # Price
+                        form_field(
+                            "Price",
+                            "25000",
+                            "number",
+                            "price",
+                            "dollar-sign",
+                            car.price.to(str),
                         ),
                         direction="column",
                         spacing="3",
@@ -352,7 +267,7 @@ def _update_customer_dialog(user):
                         ),
                         rx.form.submit(
                             rx.dialog.close(
-                                rx.button("Update Customer"),
+                                rx.button("Update Car"),
                             ),
                             as_child=True,
                         ),
@@ -361,7 +276,7 @@ def _update_customer_dialog(user):
                         mt="4",
                         justify="end",
                     ),
-                    on_submit=State.update_customer_to_db,
+                    on_submit=State.update_car_to_db,
                     reset_on_submit=False,
                 ),
                 width="100%",
@@ -376,7 +291,7 @@ def _update_customer_dialog(user):
     )
 
 
-def _delete_customer_dialog(user):
+def _delete_car_dialog(car):
     return rx.dialog.root(
         rx.dialog.trigger(
             rx.icon_button(
@@ -396,13 +311,13 @@ def _delete_customer_dialog(user):
                 ),
                 rx.vstack(
                     rx.dialog.title(
-                        "Delete Customer",
+                        "Delete Car",
                         weight="bold",
                         margin="0",
                         color="red",
                     ),
                     rx.dialog.description(
-                        f"Are you sure you want to delete '{user.customer_name}'? This action cannot be undone.",
+                        f"Are you sure you want to delete '{car.year} {car.make} {car.model}'? This action cannot be undone.",
                     ),
                     spacing="1",
                     height="100%",
@@ -424,9 +339,9 @@ def _delete_customer_dialog(user):
                 ),
                 rx.dialog.close(
                     rx.button(
-                        "Delete Customer",
+                        "Delete Car",
                         color_scheme="red",
-                        on_click=lambda: State.delete_customer(user.id),
+                        on_click=lambda: State.delete_car(car.id),
                     ),
                 ),
                 padding_top="2em",
@@ -442,41 +357,39 @@ def _delete_customer_dialog(user):
     )
 
 
-def main_table():
+def cars_table():
     return rx.fragment(
         rx.flex(
-            _add_customer_button(),
+            _add_car_button(),
             rx.spacer(),
             rx.cond(
-                State.sort_reverse,
+                State.sort_car_reverse,
                 rx.icon(
                     "arrow-down-z-a",
                     size=28,
                     stroke_width=1.5,
                     cursor="pointer",
-                    on_click=State.toggle_sort,
+                    on_click=State.toggle_car_sort,
                 ),
                 rx.icon(
                     "arrow-down-a-z",
                     size=28,
                     stroke_width=1.5,
                     cursor="pointer",
-                    on_click=State.toggle_sort,
+                    on_click=State.toggle_car_sort,
                 ),
             ),
             rx.select(
                 [
-                    "customer_name",
-                    "email",
-                    "age",
-                    "gender",
-                    "location",
-                    "job",
-                    "salary",
+                    "make",
+                    "model",
+                    "version",
+                    "year",
+                    "price",
                 ],
-                placeholder="Sort By: Name",
+                placeholder="Sort By: Make",
                 size="3",
-                on_change=lambda sort_value: State.sort_values(sort_value),
+                on_change=lambda sort_value: State.sort_car_values(sort_value),
             ),
             rx.input(
                 rx.input.slot(rx.icon("search")),
@@ -485,7 +398,7 @@ def main_table():
                 min_width="225px",
                 width="225px",
                 variant="surface",
-                on_change=lambda value: State.filter_values(value),
+                on_change=lambda value: State.filter_car_values(value),
             ),
             justify="end",
             align="center",
@@ -494,21 +407,20 @@ def main_table():
             width="100%",
             padding_bottom="1em",
             overflow_x="auto",
+            min_width="0",
         ),
         rx.table.root(
             rx.table.header(
                 rx.table.row(
-                    _header_cell("Name", "square-user-round"),
-                    _header_cell("Email", "mail"),
-                    _header_cell("Age", "person-standing"),
-                    _header_cell("Gender", "user-round"),
-                    _header_cell("Location", "map-pinned"),
-                    _header_cell("Job", "briefcase"),
-                    _header_cell("Salary", "dollar-sign"),
+                    _header_cell("Make", "factory"),
+                    _header_cell("Model", "car"),
+                    _header_cell("Version", "settings"),
+                    _header_cell("Year", "calendar"),
+                    _header_cell("Price", "dollar-sign"),
                     _header_cell("Actions", "cog"),
                 ),
             ),
-            rx.table.body(rx.foreach(State.users, _show_customer)),
+            rx.table.body(rx.foreach(State.cars, _show_car)),
             variant="surface",
             size="3",
             width="100%",
