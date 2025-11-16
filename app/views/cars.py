@@ -200,13 +200,7 @@ def _show_car(car: Car):
         rx.table.cell(f"${car.price:,}"),
         rx.table.cell(
             rx.hstack(
-                rx.icon_button(
-                    rx.icon("square-pen", size=22),
-                    color_scheme="green",
-                    size="2",
-                    variant="solid",
-                    on_click=lambda c=car: CarState.get_car(c),
-                ),
+                _update_car_dialog(car),
                 _delete_car_dialog(car),
                 min_width="max-content",
             )
@@ -348,8 +342,17 @@ def _add_car_button() -> rx.Component:
     )
 
 
-def _update_car_dialog():
+def _update_car_dialog(car):
     return rx.dialog.root(
+        rx.dialog.trigger(
+            rx.icon_button(
+                rx.icon("square-pen", size=22),
+                color_scheme="green",
+                size="2",
+                variant="solid",
+                on_click=lambda: CarState.get_car(car),
+            ),
+        ),
         rx.dialog.content(
             rx.hstack(
                 rx.badge(
@@ -388,7 +391,7 @@ def _update_car_dialog():
                                 "text",
                                 "make",
                                 "factory",
-                                CarState.current_car.make,
+                                car.make,
                                 server_error=CarState.car_errors.get("make", ""),
                             ),
                             # Model
@@ -398,7 +401,7 @@ def _update_car_dialog():
                                 "text",
                                 "model",
                                 "car",
-                                CarState.current_car.model,
+                                car.model,
                                 server_error=CarState.car_errors.get("model", ""),
                             ),
                             spacing="3",
@@ -412,7 +415,7 @@ def _update_car_dialog():
                                 "text",
                                 "version",
                                 "settings",
-                                CarState.current_car.version,
+                                car.version,
                                 server_error=CarState.car_errors.get("version", ""),
                             ),
                             # Year
@@ -422,7 +425,7 @@ def _update_car_dialog():
                                 "number",
                                 "year",
                                 "calendar",
-                                CarState.current_car.year.to(str),
+                                car.year.to(str),
                                 server_error=CarState.car_errors.get("year", ""),
                             ),
                             spacing="3",
@@ -435,7 +438,7 @@ def _update_car_dialog():
                             "number",
                             "price",
                             "dollar-sign",
-                            CarState.current_car.price.to(str),
+                            car.price.to(str),
                             server_error=CarState.car_errors.get("price", ""),
                         ),
                         direction="column",
@@ -472,7 +475,7 @@ def _update_car_dialog():
             border=f"2.5px solid {rx.color('accent', 7)}",
             border_radius="25px",
         ),
-        open=CarState.edit_car_dialog_open,
+        open=CarState.edit_car_dialog_open & (CarState.current_car.id == car.id),
         on_open_change=CarState.set_edit_car_dialog_open,
     )
 
@@ -545,8 +548,6 @@ def _delete_car_dialog(car):
 
 def cars_table():
     return rx.vstack(
-        # Edit dialog (single instance)
-        _update_car_dialog(),
         # Filters section
         _filters_component(),
         # Search and sort controls
