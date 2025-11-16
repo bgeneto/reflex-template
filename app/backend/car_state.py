@@ -69,6 +69,8 @@ class CarState(rx.State):
         if not value:
             self.car_errors = {}
 
+    # REMOVED: delete_car_dialog_open state and handler - using internal dialog state for consistency with working modals
+
     def load_cars_entries(self) -> list[Car]:
         """Get all cars from the database."""
         with rx.session() as session:
@@ -190,7 +192,6 @@ class CarState(rx.State):
     def set_filter_car_max_price(self, value: str):
         self.filter_car_max_price = value
 
-    @rx.event
     @rx.event
     def apply_car_filters(self):
         self.car_current_page = 1
